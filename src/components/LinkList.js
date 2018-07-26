@@ -3,6 +3,7 @@ import Link from './Link'
 
 import { graphql } from 'react-apollo'
 import gql from 'graphql-tag'
+import { LINKS_PER_PAGE } from '../constants'
 
 class LinkList extends Component {
 
@@ -121,8 +122,9 @@ class LinkList extends Component {
 
 
 export const FEED_QUERY = gql`
-  query FeedQuery {
-    feed {
+  query FeedQuery($first: Int, $skip: Int, $orderBy: LinkOrderByInput) {
+    feed(first: $first, skip: $skip, orderBy: $orderBy) {
+      count
       links {
         id
         createdAt
@@ -139,8 +141,21 @@ export const FEED_QUERY = gql`
           }
         }
       }
+      count
     }
   }
 `
 
-export default graphql(FEED_QUERY, { name: 'feedQuery' }) (LinkList)
+export default graphql(FEED_QUERY, {
+  name: 'feedQuery',
+  options: ownProps => {
+    const page = parseInt(ownProps.match.params.page, 10)
+    const isNewPage = ownProps.location.pathname.includes('new')
+    const skip = isNewPage ? (page - 1) * LINKS_PER_PAGE : 0
+    const first = isNewPage ? LINKS_PER_PAGE : 100
+    const orderBy = isNewPage ? 'createdAt_DESC' : null
+    return {
+      variables: { first, skip, orderBy },
+    }
+  },
+})(LinkList)
